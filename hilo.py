@@ -439,7 +439,7 @@ class HiLo(IconScoreBase):
     def calculate_bet_limit(self, bet_type: int, user_prev_card_number: int, treasury_min: int) -> int:
         gap = self.calculate_gap(bet_type, user_prev_card_number)
 
-        return (treasury_min * 1.5 * gap) // (68134 - 681.34 * gap)
+        return int((treasury_min * 1.5 * gap) // (68134 - 681.34 * gap))
     
     def calculate_bet_payout(self, gap: int, bet_amount: int) -> int:
         return int(int(MAIN_BET_MULTIPLIER * 100) * bet_amount // (100 * gap))
