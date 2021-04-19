@@ -59,14 +59,14 @@ CARD_TITLES = {
     12: 'A'
 }
 
-# An interface to roulette score
-class RouletteInterface(InterfaceScore):
+# An interface to treasury score
+class TreasuryInterface(InterfaceScore):
     @interface
     def get_treasury_min(self) -> int:
         pass
 
     @interface
-    def take_wager(self, _amount: int) -> None:
+    def send_wager(self, _amount: int) -> None:
         pass
 
     @interface
@@ -76,16 +76,18 @@ class RouletteInterface(InterfaceScore):
 
 class HiLo(IconScoreBase):
     _GAME_ON            = "game_on"
-    _ROULETTE_SCORE     = "roulette_score"
+    _TREASURY_SCORE     = "treasury_score"
     _USER_CARD          = "user_card"
-
+    _ADMIN_ADDRESS      = "Admin_Address"
+    
     def __init__(self, db: IconScoreDatabase) -> None:
         super().__init__(db)
         if DEBUG is True:
             Logger.debug(f'In __init__.', TAG)
             Logger.debug(f'owner is {self.owner}.', TAG)
         self._game_on = VarDB(self._GAME_ON, db, value_type=bool)
-        self._roulette_score = VarDB(self._ROULETTE_SCORE, db, value_type=Address)
+        self._game_admin = VarDB(self._ADMIN_ADDRESS, db, value_type=Address)
+        self._treasury_score = VarDB(self._TREASURY_SCORE, db, value_type=Address)
         self._user_card = DictDB(self._USER_CARD, db, value_type=int)
 
     @eventlog(indexed=3)
@@ -137,34 +139,48 @@ class HiLo(IconScoreBase):
         return self.owner
 
     @external
-    def set_roulette_score(self, _score: Address) -> None:
+    def set_treasury_score(self, _score: Address) -> None:
         """
-        Sets the roulette score address. The function can only be invoked by score owner.
-        :param _score: Score address of the roulette
+        Sets the treasury score address. The function can only be invoked by score owner.
+        :param _score: Score address of the treasury
         :type _score: :class:`iconservice.base.address.Address`
         """
         if self.msg.sender == self.owner:
-            self._roulette_score.set(_score)
+            self._treasury_score.set(_score)
 
     @external(readonly=True)
-    def get_roulette_score(self) -> Address:
+    def get_treasury_score(self) -> Address:
         """
-        Returns the roulette score address.
-        :return: Address of the roulette score
+        Returns the treasury score address.
+        :return: Address of the treasury score
         :rtype: :class:`iconservice.base.address.Address`
         """
-        return self._roulette_score.get()
+        return self._treasury_score.get()
+
+    @external
+    def set_game_admin(self, admin_address: Address) -> None:
+      if self.msg.sender != self.owner:
+        revert('Only the owner can call set_game_admin method')
+      self._game_admin.set(admin_address)
+
+    @external(readonly=True)
+    def get_game_admin(self) -> Address:
+      """
+      A function to return the admin of the game
+      :return: Address
+      """
+      return self._game_admin.get()
 
     @external
     def game_on(self) -> None:
         """
         Set the status of game as on. Only the owner of the game can call this method.
-        Owner must have set the roulette score before changing the game status as on.
+        Owner must have set the treasury score before changing the game status as on.
         """
         if self.msg.sender != self.owner:
             revert('Only the owner can call the game_on method')
         
-        if not self._game_on.get() and self._roulette_score.get() is not None:
+        if not self._game_on.get() and self._treasury_score.get() is not None:
             self._game_on.set(True)
 
     @external
@@ -254,11 +270,11 @@ class HiLo(IconScoreBase):
 
         self.BetSource(self.tx.origin, self.tx.timestamp)
 
-        roulette_score = self.create_interface_score(self._roulette_score.get(), RouletteInterface)
-        _treasury_min = roulette_score.get_treasury_min()
-        self.icx.transfer(self._roulette_score.get(), self.msg.value)
-        self.FundTransfer(self._roulette_score.get(), self.msg.value, "Sending icx to Roulette")
-        roulette_score.take_wager(self.msg.value)
+        treasury_score = self.create_interface_score(self._treasury_score.get(), TreasuryInterface)
+        _treasury_min = treasury_score.get_treasury_min()
+        self.icx.transfer(self._treasury_score.get(), self.msg.value)
+        self.FundTransfer(self._treasury_score.get(), self.msg.value, "Sending icx to Treasury")
+        treasury_score.icx(self.msg.value).send_wager(self.msg.value)
 
         # Guards
         if not self._game_on.get():
@@ -287,14 +303,6 @@ class HiLo(IconScoreBase):
         # unmatch is always played with red/black, it is not considered as sidebet!
         if main_bet_type != 4 and side_bet_type != 0 and side_bet_amount != 0:
             side_bet_set = True
-            if side_bet_type not in SIDE_BET_TYPES:
-                Logger.debug(f'Invalid side bet type', TAG)
-                revert(f'Invalid side bet type.')
-            side_bet_limit = _treasury_min // BET_LIMIT_RATIOS_SIDE_BET[side_bet_type]
-            if side_bet_amount < BET_MIN or side_bet_amount > side_bet_limit:
-                Logger.debug(f'Betting amount {side_bet_amount} out of range.', TAG)
-                revert(f'Betting amount {side_bet_amount} out of range ({BET_MIN} ,{side_bet_limit}).')
-            side_bet_payout = int(SIDE_BET_MULTIPLIERS[side_bet_type] * 100) * side_bet_amount // 100
 
         user_id = self.tx.origin
         main_bet_amount = self.msg.value - side_bet_amount
@@ -324,7 +332,7 @@ class HiLo(IconScoreBase):
             gap = self.calculate_gap(main_bet_type, oldCardNumber)
             main_bet_payout = self.calculate_bet_payout(gap, main_bet_amount)
         
-        if self.icx.get_balance(self._roulette_score.get()) < main_bet_payout + side_bet_payout:
+        if self.icx.get_balance(self._treasury_score.get()) < main_bet_payout + side_bet_payout:
             Logger.debug(f'Not enough in treasury to make the play.', TAG)
             revert('Not enough in treasury to make the play.')
 
@@ -349,6 +357,15 @@ class HiLo(IconScoreBase):
             side_bet_won = self.check_side_bet_win(side_bet_type, cardNumber, cardSuite)
             if not side_bet_won:
                 side_bet_payout = 0
+            else:
+                if side_bet_type not in SIDE_BET_TYPES:
+                    Logger.debug(f'Invalid side bet type', TAG)
+                    revert(f'Invalid side bet type.')
+                side_bet_limit = _treasury_min // BET_LIMIT_RATIOS_SIDE_BET[side_bet_type]
+                if side_bet_amount < BET_MIN or side_bet_amount > side_bet_limit:
+                    Logger.debug(f'Betting amount {side_bet_amount} out of range.', TAG)
+                    revert(f'Betting amount {side_bet_amount} out of range ({BET_MIN} ,{side_bet_limit}).')
+                side_bet_payout = int(SIDE_BET_MULTIPLIERS[side_bet_type] * 100) * side_bet_amount // 100
 
         normalizedNewCard = self.get_normalized_card(cardNumber, cardSuite)
         Logger.debug(f'Old card: {user_prev_card} new card {normalizedNewCard} has won {main_bet_won} bet amount {main_bet_amount}', TAG)
@@ -369,7 +386,7 @@ class HiLo(IconScoreBase):
             Logger.debug(f'Amount owed to winner: {payout}', TAG)
             try:
                 Logger.debug(f'Trying to send to ({self.tx.origin}): {payout}.', TAG)
-                roulette_score.wager_payout(payout)
+                _treasury_score.wager_payout(payout)
                 Logger.debug(f'Sent winner ({self.tx.origin}) {payout}.', TAG)
             except BaseException as e:
                 Logger.debug(f'Send failed. Exception: {e}', TAG)
@@ -410,14 +427,14 @@ class HiLo(IconScoreBase):
         return int(number) + int((number > 0) and (number - int(number)) > 0)
 
     @external(readonly=True)
-    def current_card(self, user_id: Address) -> [str, str]:
+    def current_card(self, user_id: Address) -> list:
         
         # user has no card
         if self._user_card[user_id] == 0:
-            return '-1', '-1'
+            return ['-1', '-1']
 
         cardNumber, cardSuite = self.get_real_card(self._user_card[user_id])
-        return CARD_TITLES[cardNumber], CARD_SUITES[cardSuite]
+        return [CARD_TITLES[cardNumber], CARD_SUITES[cardSuite]]
 
     def calculate_bet_limit(self, bet_type: int, user_prev_card_number: int, treasury_min: int) -> int:
         gap = self.calculate_gap(bet_type, user_prev_card_number)
