@@ -130,6 +130,10 @@ class HiLo(IconScoreBase):
         super().on_update()
 
     @external(readonly=True)
+    def name(self) -> str:
+        return TAG
+
+    @external(readonly=True)
     def get_score_owner(self) -> Address:
         """
         A function to return the owner of this score.
