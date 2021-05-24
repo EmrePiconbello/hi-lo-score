@@ -159,9 +159,9 @@ class HiLo(IconScoreBase):
 
     @external
     def set_game_admin(self, admin_address: Address) -> None:
-      if self.msg.sender != self.owner:
-        revert('Only the owner can call set_game_admin method')
-      self._game_admin.set(admin_address)
+        if self.msg.sender != self.owner:
+            revert(f'{TAG}: Only the owner can call set_game_admin method')
+        self._game_admin.set(admin_address)
 
     @external(readonly=True)
     def get_game_admin(self) -> Address:
@@ -178,8 +178,8 @@ class HiLo(IconScoreBase):
         Owner must have set the treasury score before changing the game status as on.
         """
         if self.msg.sender != self.owner:
-            revert('Only the owner can call the game_on method')
-        
+            revert(f'{TAG}: Only the owner can call the game_on method')
+
         if not self._game_on.get() and self._treasury_score.get() is not None:
             self._game_on.set(True)
 
@@ -189,7 +189,7 @@ class HiLo(IconScoreBase):
         Set the status of game as off. Only the owner of the game can call this method.
         """
         if self.msg.sender != self.owner:
-            revert('Only the owner can call the game_on method')
+            revert(f'{TAG}: Only the owner can call the game_on method')
 
         if self._game_on.get():
             self._game_on.set(False)
@@ -217,7 +217,7 @@ class HiLo(IconScoreBase):
         Sets the value of self.owner to the score holding the game treasury
         """
         if self.msg.sender != self.owner:
-            revert('Only the owner can call the untether method ')
+            revert(f'{TAG}: Only the owner can call the untether method ')
         pass
 
     @external
@@ -226,7 +226,7 @@ class HiLo(IconScoreBase):
 
         if not self._game_on.get():
             Logger.debug(f'Game not active yet.', TAG)
-            revert(f'Game not active yet.')
+            revert(f'{TAG}: Game not active yet.')
 
         user_id = self.tx.origin
 
@@ -311,7 +311,7 @@ class HiLo(IconScoreBase):
         if user_prev_card == 0:
             # previos card does not exist
             Logger.debug(f'Start game for user first!', TAG)
-            revert(f'Start game for user first!')
+            revert(f'{TAG}: Start game for user first!')
 
         oldCardNumber, oldCardSuite = self.get_real_card(user_prev_card)
 
@@ -319,23 +319,22 @@ class HiLo(IconScoreBase):
 
         if (main_bet_type == 1 and oldCardNumber == 1) or (main_bet_type == 2 and oldCardNumber == 12):
             Logger.debug(f'Invalid main bet!', TAG)
-            revert(f'Invalid main bet!')
+            revert(f'{TAG}: Invalid main bet!')
 
-        if main_bet_type != 0: # If main bet is played
+        if main_bet_type != 0:  # If main bet is played
             main_bet_limit = self.calculate_bet_limit(main_bet_type, oldCardNumber, _treasury_min)
             if main_bet_amount < BET_MIN or main_bet_amount > main_bet_limit:
                 Logger.debug(f'Betting amount {main_bet_amount} out of range.', TAG)
-                revert(f'Bet amount {main_bet_amount} out of range {BET_MIN},{main_bet_limit} ')
+                revert(f'{TAG}: Bet amount {main_bet_amount} out of range {BET_MIN},{main_bet_limit} ')
 
         main_bet_payout = 0
         if main_bet_type != 0: # If main bet is played
             gap = self.calculate_gap(main_bet_type, oldCardNumber)
             main_bet_payout = self.calculate_bet_payout(gap, main_bet_amount)
-        
+
         if self.icx.get_balance(self._treasury_score.get()) < main_bet_payout + side_bet_payout:
             Logger.debug(f'Not enough in treasury to make the play.', TAG)
-            revert('Not enough in treasury to make the play.')
-
+            revert(f'{TAG}: Not enough in treasury to make the play.')
 
         # Actual bet part
         cardNumber, cardSuite = self.get_random_card(user_seed)
@@ -360,11 +359,11 @@ class HiLo(IconScoreBase):
             else:
                 if side_bet_type not in SIDE_BET_TYPES:
                     Logger.debug(f'Invalid side bet type', TAG)
-                    revert(f'Invalid side bet type.')
+                    revert(f'{TAG}: Invalid side bet type.')
                 side_bet_limit = _treasury_min // BET_LIMIT_RATIOS_SIDE_BET[side_bet_type]
                 if side_bet_amount < BET_MIN or side_bet_amount > side_bet_limit:
                     Logger.debug(f'Betting amount {side_bet_amount} out of range.', TAG)
-                    revert(f'Betting amount {side_bet_amount} out of range ({BET_MIN} ,{side_bet_limit}).')
+                    revert(f'{TAG}: Betting amount {side_bet_amount} out of range ({BET_MIN} ,{side_bet_limit}).')
                 side_bet_payout = int(SIDE_BET_MULTIPLIERS[side_bet_type] * 100) * side_bet_amount // 100
 
         normalizedNewCard = self.get_normalized_card(cardNumber, cardSuite)
@@ -390,7 +389,7 @@ class HiLo(IconScoreBase):
                 Logger.debug(f'Sent winner ({self.tx.origin}) {payout}.', TAG)
             except BaseException as e:
                 Logger.debug(f'Send failed. Exception: {e}', TAG)
-                revert('Network problem. Winnings not sent. Returning funds.')
+                revert(f'{TAG}: Network problem. Winnings not sent. Returning funds.')
         else:
             Logger.debug(f'Player lost. ICX retained in treasury.', TAG)
 
