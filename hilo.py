@@ -364,7 +364,7 @@ class HiLo(IconScoreBase):
                 if side_bet_amount < BET_MIN or side_bet_amount > side_bet_limit:
                     Logger.debug(f'Betting amount {side_bet_amount} out of range.', TAG)
                     revert(f'{TAG}: Betting amount {side_bet_amount} out of range ({BET_MIN} ,{side_bet_limit}).')
-                side_bet_payout = int(SIDE_BET_MULTIPLIERS[side_bet_type] * 100) * side_bet_amount // 100
+                side_bet_payout = int(SIDE_BET_MULTIPLIERS[side_bet_type] * 1000) * side_bet_amount // 1000
 
         normalizedNewCard = self.get_normalized_card(cardNumber, cardSuite)
         Logger.debug(f'Old card: {user_prev_card} new card {normalizedNewCard} has won {main_bet_won} bet amount {main_bet_amount}', TAG)
