@@ -1,6 +1,6 @@
 from iconservice import *
 
-TAG = "HILO"
+TAG = "ICONbet HI-LO"
 DEBUG = True
 MAIN_BET_MULTIPLIER = 98.5
 BET_MIN = 100000000000000000
