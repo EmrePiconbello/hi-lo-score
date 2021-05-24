@@ -269,11 +269,39 @@ class HiLo(IconScoreBase):
         """
 
         return self.__bet(main_bet_type, user_seed, side_bet_amount, side_bet_type)
-    
-    def __bet(self, main_bet_type: int, user_seed :str, side_bet_amount: int, side_bet_type: int) -> None:
+
+    def __bet(self, main_bet_type: int, user_seed: str, side_bet_amount: int, side_bet_type: int) -> None:
+        # Guards
+        if not self._game_on.get():
+            Logger.debug(f'Game not active yet.', TAG)
+            revert(f'{TAG}: Game not active yet.')
+
+        if main_bet_type == 0 and side_bet_type == 0:
+            Logger.debug(f'Need at least one bet(main/side)', TAG)
+            revert(f'{TAG}: Need at least one bet(main/side)')
+
+        if not (0 <= main_bet_type <= 4):
+            Logger.debug(f'Invalid bet type', TAG)
+            revert(f'{TAG}: Invalid bet type')
+
+        if main_bet_type == 4 and side_bet_type != 0:
+            Logger.debug(f'Can not play unmatch with side bet!', TAG)
+            revert(f'{TAG}: Can not play unmatch with side bet!')
+
+        if (side_bet_type == 0 and side_bet_amount != 0) or (side_bet_type != 0 and side_bet_amount == 0):
+            Logger.debug(f'should set both side bet type as well as side bet amount', TAG)
+            revert(f'{TAG}: should set both side bet type as well as side bet amount')
+
+        if side_bet_amount < 0:
+            revert(f'{TAG}: Side bet amount cannot be negative')
+
         side_bet_won = False
         side_bet_set = False
         side_bet_payout = 0
+
+        # unmatch is always played with red/black, it is not considered as sidebet!
+        if main_bet_type != 4 and side_bet_type != 0 and side_bet_amount != 0:
+            side_bet_set = True
 
         self.BetSource(self.tx.origin, self.tx.timestamp)
 
@@ -282,34 +310,6 @@ class HiLo(IconScoreBase):
         self.icx.transfer(self._treasury_score.get(), self.msg.value)
         self.FundTransfer(self._treasury_score.get(), self.msg.value, "Sending icx to Treasury")
         treasury_score.icx(self.msg.value).send_wager(self.msg.value)
-
-        # Guards
-        if not self._game_on.get():
-            Logger.debug(f'Game not active yet.', TAG)
-            revert(f'Game not active yet.')
-
-        if main_bet_type == 0 and side_bet_type == 0:
-            Logger.debug(f'Need at least one bet(main/side)', TAG)
-            revert(f'Need at least one bet(main/side)')
-
-        if not (0 <= main_bet_type <= 4):
-            Logger.debug(f'Invalid bet type', TAG)
-            revert(f'Invalid bet type')
-
-        if main_bet_type == 4 and side_bet_type != 0:
-            Logger.debug(f'Can not play unmatch with side bet!', TAG)
-            revert(f'Can not play unmatch with side bet!')
-
-        if (side_bet_type == 0 and side_bet_amount != 0) or (side_bet_type != 0 and side_bet_amount == 0):
-            Logger.debug(f'should set both side bet type as well as side bet amount', TAG)
-            revert(f'should set both side bet type as well as side bet amount')
-
-        if side_bet_amount < 0:
-            revert(f'Side bet amount cannot be negative')
-
-        # unmatch is always played with red/black, it is not considered as sidebet!
-        if main_bet_type != 4 and side_bet_type != 0 and side_bet_amount != 0:
-            side_bet_set = True
 
         user_id = self.tx.origin
         main_bet_amount = self.msg.value - side_bet_amount
