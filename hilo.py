@@ -402,7 +402,7 @@ class HiLo(IconScoreBase):
             Logger.debug(f'Amount owed to winner: {payout}', TAG)
             try:
                 Logger.debug(f'Trying to send to ({self.tx.origin}): {payout}.', TAG)
-                _treasury_score.wager_payout(payout)
+                treasury_score.wager_payout(payout)
                 Logger.debug(f'Sent winner ({self.tx.origin}) {payout}.', TAG)
             except BaseException as e:
                 Logger.debug(f'Send failed. Exception: {e}', TAG)
