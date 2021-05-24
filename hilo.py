@@ -5,27 +5,27 @@ DEBUG = True
 MAIN_BET_MULTIPLIER = 98.5
 BET_MIN = 100000000000000000
 CARD_SUITES = [
-    '',        # 0
-    'HEART',   # 1
-    'DIAMOND', # 2
-    'SPADE',   # 3
-    'CLUB'     # 4
+    '',  # 0
+    'HEART',  # 1
+    'DIAMOND',  # 2
+    'SPADE',  # 3
+    'CLUB'  # 4
 ]
 
-CARD_SUITE_COLORS = [ 
-    '',      # 0
-    'RED',   # 1
-    'RED',   # 2
-    'BLACK', # 3
+CARD_SUITE_COLORS = [
+    '',  # 0
+    'RED',  # 1
+    'RED',  # 2
+    'BLACK',  # 3
     'BLACK'  # 4
 ]
 
 SIDE_BET_TYPES = {
     1: "COLOR_RED",
     2: "COLOR_BLACK",
-    3: "GROUP_FIRST", # 2-3-4-5
-    4: "GROUP_SECOND", # 6-7-8-9
-    5: "GROUP_THIRD", # J-Q-K-A
+    3: "GROUP_FIRST",  # 2-3-4-5
+    4: "GROUP_SECOND",  # 6-7-8-9
+    5: "GROUP_THIRD",  # J-Q-K-A
 }
 
 SIDE_BET_MULTIPLIERS = {
@@ -59,6 +59,7 @@ CARD_TITLES = {
     12: 'A'
 }
 
+
 # An interface to treasury score
 class TreasuryInterface(InterfaceScore):
     @interface
@@ -75,11 +76,11 @@ class TreasuryInterface(InterfaceScore):
 
 
 class HiLo(IconScoreBase):
-    _GAME_ON            = "game_on"
-    _TREASURY_SCORE     = "treasury_score"
-    _USER_CARD          = "user_card"
-    _ADMIN_ADDRESS      = "Admin_Address"
-    
+    _GAME_ON = "game_on"
+    _TREASURY_SCORE = "treasury_score"
+    _USER_CARD = "user_card"
+    _ADMIN_ADDRESS = "Admin_Address"
+
     def __init__(self, db: IconScoreDatabase) -> None:
         super().__init__(db)
         if DEBUG is True:
@@ -97,7 +98,7 @@ class HiLo(IconScoreBase):
     @eventlog(indexed=2)
     def OldCard(self, card_number: str, card_suite: str):
         pass
-        
+
     @eventlog(indexed=2)
     def NewCard(self, card_number: str, card_suite: str):
         pass
@@ -169,11 +170,11 @@ class HiLo(IconScoreBase):
 
     @external(readonly=True)
     def get_game_admin(self) -> Address:
-      """
-      A function to return the admin of the game
-      :return: Address
-      """
-      return self._game_admin.get()
+        """
+        A function to return the admin of the game
+        :return: Address
+        """
+        return self._game_admin.get()
 
     @external
     def game_on(self) -> None:
@@ -238,7 +239,7 @@ class HiLo(IconScoreBase):
             cardNumber, cardSuite = self.get_real_card(self._user_card[user_id])
             self.NewCard(CARD_TITLES[cardNumber], CARD_SUITES[cardSuite])
             return self._user_card[user_id]
-            
+
         cardNumber, cardSuite = self.get_random_card(user_seed)
         self._user_card[user_id] = self.get_normalized_card(cardNumber, cardSuite)
 
@@ -260,11 +261,13 @@ class HiLo(IconScoreBase):
         3 - match
         4 - unmatch
 
+        :param side_bet_type:
+        :param side_bet_amount:
         :param main_bet_type: User bet type
-        :type upper: int
         :param user_seed: 'Lucky phrase' provided by user, defaults to ""
         :type user_seed: str,optional
         """
+
         return self.__bet(main_bet_type, user_seed, side_bet_amount, side_bet_type)
     
     def __bet(self, main_bet_type: int, user_seed :str, side_bet_amount: int, side_bet_type: int) -> None:
@@ -310,10 +313,10 @@ class HiLo(IconScoreBase):
 
         user_id = self.tx.origin
         main_bet_amount = self.msg.value - side_bet_amount
-        
+
         user_prev_card = self._user_card[user_id]
         if user_prev_card == 0:
-            # previos card does not exist
+            # previous card does not exist
             Logger.debug(f'Start game for user first!', TAG)
             revert(f'{TAG}: Start game for user first!')
 
@@ -332,7 +335,7 @@ class HiLo(IconScoreBase):
                 revert(f'{TAG}: Bet amount {main_bet_amount} out of range {BET_MIN},{main_bet_limit} ')
 
         main_bet_payout = 0
-        if main_bet_type != 0: # If main bet is played
+        if main_bet_type != 0:  # If main bet is played
             gap = self.calculate_gap(main_bet_type, oldCardNumber)
             main_bet_payout = self.calculate_bet_payout(gap, main_bet_amount)
 
@@ -371,9 +374,9 @@ class HiLo(IconScoreBase):
                 side_bet_payout = int(SIDE_BET_MULTIPLIERS[side_bet_type] * 1000) * side_bet_amount // 1000
 
         normalizedNewCard = self.get_normalized_card(cardNumber, cardSuite)
-        Logger.debug(f'Old card: {user_prev_card} new card {normalizedNewCard} has won {main_bet_won} bet amount {main_bet_amount}', TAG)
+        Logger.debug(f'Old card: {user_prev_card} new card {normalizedNewCard} has won {main_bet_won} '
+                     f'bet amount {main_bet_amount}', TAG)
 
-        
         self.DebugPayout(main_bet_payout * main_bet_won + side_bet_payout, main_bet_payout, side_bet_payout)
 
         main_bet_payout = main_bet_payout * main_bet_won
@@ -412,12 +415,13 @@ class HiLo(IconScoreBase):
         spin = (int.from_bytes(sha3_256(seed.encode()), "big") % 100000) / 100000.0
         Logger.debug(f'Result of the spin was {spin}.', TAG)
         return spin
-    
+
     def get_random_card(self, user_seed: str = '') -> [int, int]:
         spin = self.get_random(user_seed)
         return self.get_real_card(int(spin * 48) + 1)
 
-    def get_normalized_card(self, cardNumber: int, cardSuite: int) -> int:
+    @staticmethod
+    def get_normalized_card(cardNumber: int, cardSuite: int) -> int:
         return (cardSuite - 1) * 12 + cardNumber
 
     def get_real_card(self, cardAsInt: int = 0) -> [int, int]:
@@ -426,12 +430,12 @@ class HiLo(IconScoreBase):
         cardSuite = self.ceil(cardAsInt / 12)
         return cardNumber, cardSuite
 
-    def ceil(self, number: float) -> int:
+    @staticmethod
+    def ceil(number: float) -> int:
         return int(number) + int((number > 0) and (number - int(number)) > 0)
 
     @external(readonly=True)
     def current_card(self, user_id: Address) -> list:
-        
         # user has no card
         if self._user_card[user_id] == 0:
             return ['-1', '-1']
@@ -443,49 +447,52 @@ class HiLo(IconScoreBase):
         gap = self.calculate_gap(bet_type, user_prev_card_number)
 
         return int((treasury_min * 1.5 * gap) // (68134 - 681.34 * gap))
-    
-    def calculate_bet_payout(self, gap: int, bet_amount: int) -> int:
+
+    @staticmethod
+    def calculate_bet_payout(gap: int, bet_amount: int) -> int:
         return int(int(MAIN_BET_MULTIPLIER * 100) * bet_amount // (100 * gap))
 
-    def calculate_gap(self, bet_type: int, user_prev_card_number: int) -> float:
-        if bet_type == 0:   # main bet not played, this should not even be called
+    @staticmethod
+    def calculate_gap(bet_type: int, user_prev_card_number: int) -> float:
+        if bet_type == 0:  # main bet not played, this should not even be called
             gap = 0
-        elif bet_type == 1: # lower
-            gap = user_prev_card_number - 1 
-        elif bet_type == 2: # upper
+        elif bet_type == 1:  # lower
+            gap = user_prev_card_number - 1
+        elif bet_type == 2:  # upper
             gap = 12 - user_prev_card_number
-        elif bet_type == 3: # match win rate 1/12
+        elif bet_type == 3:  # match win rate 1/12
             gap = 1
-        elif bet_type == 4: # unmatch win rate 23/24
+        elif bet_type == 4:  # unmatch win rate 23/24
             gap = 11.5
         else:
             gap = 0
 
         # scale from 12 to 100.
         return gap * 100 / 12
-    
+
     # check for bet limits and side limits
-    def check_side_bet_win(self, side_bet_type: int, cardNumber: int, cardSuite: str) -> bool:
+    @staticmethod
+    def check_side_bet_win(side_bet_type: int, card_number: int, card_suite: int) -> bool:
         """
         Checks the conditions for side bets are matched or not.
+        :param card_suite:
+        :param card_number:
         :param side_bet_type: side bet types can be one of this ["digits_match", "icon_logo1","icon_logo2"], defaults to
          ""
         :type side_bet_type: str,optional
-        :param winning_number: winning number returned by random function
-        :type winning_number: int
         :return: Returns true or false based on the side bet type and the winning number
         :rtype: bool
         """
-        if side_bet_type == 1:                      # red
-            return cardSuite in [1, 2]
-        elif side_bet_type == 2:                    # black
-            return cardSuite in [3, 4]
-        elif side_bet_type == 3:                    # group 1-4 (2, 3, 4, 5)
-            return cardNumber in [1, 2, 3, 4]
-        elif side_bet_type == 4:                    # group 5-8 (6, 7, 8, 9)
-            return cardNumber in [5, 6, 7, 8]
-        elif side_bet_type == 5:                    # group 9-12 (J, Q, K, A)
-            return cardNumber in [9, 10, 11, 12]
+        if side_bet_type == 1:  # red
+            return card_suite in [1, 2]
+        elif side_bet_type == 2:  # black
+            return card_suite in [3, 4]
+        elif side_bet_type == 3:  # group 1-4 (2, 3, 4, 5)
+            return card_number in [1, 2, 3, 4]
+        elif side_bet_type == 4:  # group 5-8 (6, 7, 8, 9)
+            return card_number in [5, 6, 7, 8]
+        elif side_bet_type == 5:  # group 9-12 (J, Q, K, A)
+            return card_number in [9, 10, 11, 12]
         else:
             return False
 
