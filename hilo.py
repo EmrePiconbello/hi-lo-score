@@ -150,8 +150,13 @@ class HiLo(IconScoreBase):
         :param _score: Score address of the treasury
         :type _score: :class:`iconservice.base.address.Address`
         """
-        if self.msg.sender == self.owner:
-            self._treasury_score.set(_score)
+        if self.msg.sender != self.owner:
+            revert(f"{TAG}: Only owner can set the treasury score.")
+
+        if not _score.is_contract:
+            revert(f"{TAG}: {_score} should be a contract address.")
+
+        self._treasury_score.set(_score)
 
     @external(readonly=True)
     def get_treasury_score(self) -> Address:
