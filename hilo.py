@@ -455,6 +455,8 @@ class HiLo(IconScoreBase):
             gap = 1
         elif bet_type == 4: # unmatch win rate 23/24
             gap = 11.5
+        else:
+            gap = 0
 
         # scale from 12 to 100.
         return gap * 100 / 12
