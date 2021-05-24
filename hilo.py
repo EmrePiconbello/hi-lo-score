@@ -227,6 +227,9 @@ class HiLo(IconScoreBase):
 
     @external
     def first_call(self, user_seed: str = '') -> int:
+        if self.msg.sender.is_contract:
+            revert(f"{TAG}: Contracts are not allowed to play ICONbet Games.")
+
         self.BetSource(self.tx.origin, self.tx.timestamp)
 
         if not self._game_on.get():
@@ -272,6 +275,8 @@ class HiLo(IconScoreBase):
 
     def __bet(self, main_bet_type: int, user_seed: str, side_bet_amount: int, side_bet_type: int) -> None:
         # Guards
+        if self.msg.sender.is_contract:
+            revert(f"{TAG}: Contracts are not allowed to play ICONbet Games.")
         if not self._game_on.get():
             Logger.debug(f'Game not active yet.', TAG)
             revert(f'{TAG}: Game not active yet.')
