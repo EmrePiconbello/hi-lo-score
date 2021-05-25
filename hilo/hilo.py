@@ -187,8 +187,8 @@ class HiLo(IconScoreBase):
         Set the status of game as on. Only the owner of the game can call this method.
         Owner must have set the treasury score before changing the game status as on.
         """
-        if self.msg.sender != self.owner:
-            revert(f'{TAG}: Only the owner can call the game_on method')
+        if self.msg.sender != self._game_admin.get() and self.msg.sender != self.owner:
+            revert(f'{TAG}: Only the owner or admin can call the game_on method')
 
         if not self._game_on.get() and self._treasury_score.get() is not None:
             self._game_on.set(True)
@@ -200,8 +200,8 @@ class HiLo(IconScoreBase):
         """
         Set the status of game as off. Only the owner of the game can call this method.
         """
-        if self.msg.sender != self.owner:
-            revert(f'{TAG}: Only the owner can call the game_on method')
+        if self.msg.sender != self._game_admin.get() and self.msg.sender != self.owner:
+            revert(f'{TAG}: Only the owner or admin can call the game_off method')
 
         if self._game_on.get():
             self._game_on.set(False)
