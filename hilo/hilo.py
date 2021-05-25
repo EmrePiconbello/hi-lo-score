@@ -321,9 +321,9 @@ class HiLo(IconScoreBase):
 
         treasury_score = self.create_interface_score(self._treasury_score.get(), TreasuryInterface)
         _treasury_min = treasury_score.get_treasury_min()
-        self.icx.transfer(self._treasury_score.get(), self.msg.value)
-        self.FundTransfer(self._treasury_score.get(), self.msg.value, "Sending icx to Treasury")
+
         treasury_score.icx(self.msg.value).send_wager(self.msg.value)
+        self.FundTransfer(self._treasury_score.get(), self.msg.value, "Sending icx to Treasury")
 
         user_id = self.tx.origin
         main_bet_amount = self.msg.value - side_bet_amount
