@@ -192,6 +192,8 @@ class HiLo(IconScoreBase):
 
         if not self._game_on.get() and self._treasury_score.get() is not None:
             self._game_on.set(True)
+        else:
+            revert(f'{TAG}: Game On Failed.')
 
     @external
     def game_off(self) -> None:
@@ -203,6 +205,8 @@ class HiLo(IconScoreBase):
 
         if self._game_on.get():
             self._game_on.set(False)
+        else:
+            revert(f"{TAG}: Game is already off.")
 
     @external(readonly=True)
     def get_game_on(self) -> bool:
