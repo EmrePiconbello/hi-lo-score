@@ -463,7 +463,7 @@ class HiLo(IconScoreBase):
         return int((treasury_min * 1.5 * gap) // (68134 - 681.34 * gap))
 
     @staticmethod
-    def calculate_bet_payout(gap: int, bet_amount: int) -> int:
+    def calculate_bet_payout(gap: float, bet_amount: int) -> int:
         return int(int(MAIN_BET_MULTIPLIER * 100) * bet_amount // (100 * gap))
 
     @staticmethod
